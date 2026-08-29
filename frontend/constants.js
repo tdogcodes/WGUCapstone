@@ -1,1 +1,0 @@
-export const SERVERURL = "http://localhost:8000"
