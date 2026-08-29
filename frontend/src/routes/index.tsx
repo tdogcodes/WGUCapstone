@@ -1,7 +1,12 @@
+import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Button } from './components/ui/button'
+import { Button } from '@/components/ui/button'
 
-function App() {
+export const Route = createFileRoute('/')({
+  component: Home,
+})
+
+function Home() {
   const { data, isPending } = useQuery({
     queryFn: () => fetch('http://localhost:8000/api/health').then(res => res.json()),
     queryKey: ['health']
@@ -17,4 +22,4 @@ function App() {
   )
 }
 
-export default App
+export default Home
