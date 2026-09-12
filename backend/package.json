@@ -1,8 +1,8 @@
 {
   "name": "backend",
-  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "uv run uvicorn src.backend.main:app --reload --port 8000"
+    "db:seed": "uv run python -m backend.db.seed",
+    "db:pipeline": "uv run python -m backend.db.pipeline"
   }
 }

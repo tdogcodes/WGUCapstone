@@ -15,7 +15,9 @@
     "backend"
   ],
   "scripts": {
-    "dev": "turbo run dev"
+    "dev": "turbo run dev",
+    "db:seed": "turbo run db:seed",
+    "db:pipeline": "turbo run db:pipeline"
   },
   "keywords": [],
   "author": "",
