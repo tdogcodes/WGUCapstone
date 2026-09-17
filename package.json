@@ -17,7 +17,9 @@
   "scripts": {
     "dev": "turbo run dev",
     "db:seed": "turbo run db:seed",
-    "db:pipeline": "turbo run db:pipeline"
+    "db:pipeline": "turbo run db:pipeline",
+    "ml:train": "turbo run ml:train",
+    "ml:predict": "turbo run ml:predict"
   },
   "keywords": [],
   "author": "",

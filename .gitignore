@@ -16,6 +16,9 @@ dist-ssr
 .env
 *.db
 
+# ML model artifacts
+backend/src/backend/ml/artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -3,6 +3,8 @@ from datetime import date, timedelta
 from sqlmodel import Session, SQLModel
 from backend.db.models import RawInventory, RawProduct, RawSale, get_engine
 
+# this creates the mock datasets which contain dirty data, this will then be processed by the data cleaning pipeline in pipeline.py
+
 random.seed(42)
 TODAY = date.today()
 

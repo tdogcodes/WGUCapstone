@@ -10,6 +10,12 @@
     },
     "db:pipeline": {
       "cache": false
+    },
+    "ml:train": {
+      "cache": false
+    },
+    "ml:predict": {
+      "cache": false
     }
   }
 }
