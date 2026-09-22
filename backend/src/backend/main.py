@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.api.dashboard import router as dashboard_router
 from backend.api.forecast import router as forecast_router
-from backend.api.health import router as health_router
 
 app = FastAPI()
 
@@ -18,5 +18,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health_router, prefix="/api")
 app.include_router(forecast_router, prefix="/api")
+app.include_router(dashboard_router, prefix="/api")

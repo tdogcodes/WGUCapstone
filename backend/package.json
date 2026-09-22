@@ -2,6 +2,7 @@
   "name": "backend",
   "private": true,
   "scripts": {
+    "dev": "uv run uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload",
     "db:seed": "uv run python -m backend.db.seed",
     "db:pipeline": "uv run python -m backend.db.pipeline",
     "ml:train": "uv run python -m backend.ml.train",

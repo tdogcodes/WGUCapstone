@@ -12,65 +12,42 @@ PRODUCTS: dict[str, list[tuple[str, float]]] = {
     "Electronics": [
         ("Wireless Mouse", 24.99),
         ("Mechanical Keyboard", 89.99),
-        ("USB-C Hub", 34.99),
         ("Bluetooth Speaker", 49.99),
-        ("HD Webcam 1080p", 59.99),
         ("Noise-Cancelling Headphones", 199.99),
-        ("Gaming Headset", 74.99),
     ],
     "Office Supplies": [
         ("Ballpoint Pens (12-Pack)", 6.49),
-        ("Sticky Notes", 3.99),
         ("Stapler", 9.99),
-        ("Three-Ring Binder", 4.99),
         ("Printer Paper (500 Sheets)", 8.49),
-        ("Desk Organizer", 18.99),
     ],
     "Furniture": [
         ("Standing Desk", 349.99),
         ("Ergonomic Office Chair", 279.99),
         ("Monitor Arm", 44.99),
-        ("Filing Cabinet", 119.99),
-        ("Bookshelf", 89.99),
-        ("Desk Lamp", 29.99),
     ],
     "Kitchen": [
         ("Coffee Maker", 54.99),
         ("Toaster Oven", 79.99),
         ("Blender", 64.99),
-        ("Knife Set", 49.99),
-        ("Cutting Board", 19.99),
-        ("Mixing Bowls (Set of 3)", 24.99),
     ],
     "Fitness": [
         ("Yoga Mat", 22.99),
         ("Dumbbell Set (25 lb)", 59.99),
-        ("Resistance Bands", 14.99),
         ("Kettlebell (20 lb)", 39.99),
-        ("Water Bottle", 12.99),
-        ("Jump Rope", 9.99),
     ],
     "Outdoors": [
         ("Camping Tent (4-Person)", 149.99),
         ("Sleeping Bag", 69.99),
-        ("Hiking Backpack (40L)", 99.99),
         ("LED Lantern", 24.99),
-        ("Portable Camp Stove", 44.99),
     ],
     "Books": [
         ("The Lean Startup", 16.99),
         ("Clean Code", 32.99),
-        ("Deep Work", 14.99),
-        ("Atomic Habits", 14.99),
-        ("Designing Data-Intensive Applications", 39.99),
     ],
     "Pet Supplies": [
         ("Dog Bed (Large)", 49.99),
         ("Cat Litter Box", 29.99),
-        ("Pet Carrier", 39.99),
         ("Dog Leash", 14.99),
-        ("Cat Scratching Post", 27.99),
-        ("Squeaky Toys (5-Pack)", 11.99),
     ],
 }
 
@@ -86,13 +63,12 @@ def build_products() -> list[RawProduct]:
 
     # duplicate products with different casing and whitespaces
     products += [
-        RawProduct(name="HD Webcam 1080P", category="Electronics", price=59.99),
         RawProduct(name="ergonomic office chair", category="Furniture", price=279.99),
         RawProduct(name="  Standing Desk  ", category="furniture", price=349.99),
         RawProduct(name="Wireless MOUSE", category="Electronics", price=24.99),
     ]
 
-    for p in random.sample(products, 5):
+    for p in random.sample(products, 4):
         style = random.choice(["upper", "lower", "lead_ws", "trail_ws", "double_ws"])
         if style == "upper":
             p.name = p.name.upper()
@@ -106,7 +82,7 @@ def build_products() -> list[RawProduct]:
             p.name = p.name.replace(" ", "  ", 1)
 
     # inconsistent categories
-    for p in random.sample(products, 6):
+    for p in random.sample(products, 4):
         if p.category:
             style = random.choice(["lower", "upper", "ws"])
             if style == "lower":
@@ -117,7 +93,7 @@ def build_products() -> list[RawProduct]:
                 p.category = "  " + p.category.lower() + " "
 
     # creating missing values
-    for p in random.sample(products, 3):
+    for p in random.sample(products, 2):
         p.price = None
     for p in random.sample(products, 2):
         p.category = None
@@ -149,14 +125,29 @@ def build_sales(products: list[RawProduct], n: int = N_SALES) -> list[RawSale]:
     return sales
 
 
-def build_inventory(products: list[RawProduct]) -> list[RawInventory]:
-    inventory = [
-        RawInventory(product_id=p.id, current_stock=random.randint(0, 250))
-        for p in products
-    ]
-    for row in random.sample(inventory, 5):
+BUCKET_PATTERN = ["increase", "maintain", "maintain", "increase", "decrease"]
+STOCK_FACTORS = {"increase": 0.5, "maintain": 1.25, "decrease": 3.0}
+
+
+def build_inventory(products: list[RawProduct], sales: list[RawSale]) -> list[RawInventory]:
+    demand: dict[int, int] = {}
+    for s in sales:
+        if s.quantity is not None:
+            demand[s.product_id] = demand.get(s.product_id, 0) + s.quantity
+
+    inventory: list[tuple[RawInventory, str]] = []
+    for i, p in enumerate(products):
+        avg_monthly = demand.get(p.id, 0) / 12
+        bucket = BUCKET_PATTERN[i % len(BUCKET_PATTERN)]
+        stock = max(1, round(avg_monthly * STOCK_FACTORS[bucket]))
+        inventory.append((RawInventory(product_id=p.id, current_stock=stock), bucket))
+
+    # a couple nulls (not on decrease products, so the mix stays intact)
+    candidates = [t for t in inventory if t[1] != "decrease"]
+    for row, _ in random.sample(candidates, 2):
         row.current_stock = None
-    return inventory
+
+    return [row for row, _ in inventory]
 
 
 def main() -> None:
@@ -171,7 +162,7 @@ def main() -> None:
         session.flush()
 
         sales = build_sales(products)
-        inventory = build_inventory(products)
+        inventory = build_inventory(products, sales)
         session.add_all(sales)
         session.add_all(inventory)
         session.commit()
