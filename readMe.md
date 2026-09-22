@@ -12,4 +12,4 @@
 ## Step 3. Test the application in the browser
 ### You can now open the project in the browser at
     http://localhost:5173/
-### This is also provided as a link in the terminal when you run the project, so all you need to do is ctrl click the link
+### This may vary if something is already running on that port, so it is also provided as a link in the terminal when you run the project, all you need to do is ctrl click the link
