@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, YAxis } from 'recharts'
 import {
   Card,
   CardContent,
@@ -63,7 +63,7 @@ export default function RevenueLineChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revenue</CardTitle>
+        <CardTitle>Revenue over the last 6 months</CardTitle>
         <CardDescription>
           {chartData[0].year_month} - {chartData[chartData.length - 1].year_month}
         </CardDescription>
@@ -75,13 +75,7 @@ export default function RevenueLineChart() {
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
           >
             <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="year_month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 12 }}
-            />
+            
             <YAxis
               tickLine={false}
               axisLine={false}
@@ -94,7 +88,9 @@ export default function RevenueLineChart() {
               content={
                 <ChartTooltipContent
                   indicator="line"
-                  formatter={(value) => `$${Number(value).toLocaleString()}`}
+                  formatter={(value, _name, _item, _index, payload) =>
+                    `$${Number(value).toLocaleString()} - ${(payload as { year_month?: string } | undefined)?.year_month ?? ''}`
+                  }
                 />
               }
             />
