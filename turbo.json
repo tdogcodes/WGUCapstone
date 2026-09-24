@@ -14,7 +14,7 @@
     "ml:train": {
       "cache": false
     },
-    "ml:predict": {
+    "ml:evaluate": {
       "cache": false
     }
   }

@@ -6,6 +6,6 @@
     "db:seed": "uv run python -m backend.db.seed",
     "db:pipeline": "uv run python -m backend.db.pipeline",
     "ml:train": "uv run python -m backend.ml.train",
-    "ml:predict": "uv run python -m backend.ml.predict"
+    "ml:evaluate": "uv run python -m backend.ml.evaluate"
   }
 }

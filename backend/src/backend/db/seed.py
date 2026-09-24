@@ -1,13 +1,12 @@
+import calendar
 import random
 from datetime import date, timedelta
 from sqlmodel import Session, SQLModel
 from backend.db.models import RawInventory, RawProduct, RawSale, get_engine
 
 # this creates the mock datasets which contain dirty data, this will then be processed by the data cleaning pipeline in pipeline.py
-
 random.seed(42)
 TODAY = date.today()
-
 PRODUCTS: dict[str, list[tuple[str, float]]] = {
     "Electronics": [
         ("Wireless Mouse", 24.99),
@@ -51,8 +50,68 @@ PRODUCTS: dict[str, list[tuple[str, float]]] = {
     ],
 }
 
-N_SALES = 1200
+BASE_LEVEL = 12.0
+POPULARITY_SIGMA = 0.9
+NOISE_AMP = 4
+TREND_SLOPE = 0.4
+N_MONTHS = 12
 
+GLOBAL_SEASON = {
+    0: 0.6, 1: 0.8, 2: 0.9, 3: 1.0, 4: 1.0, 5: 1.1,
+    6: 1.2, 7: 1.3, 8: 1.4, 9: 1.5, 10: 1.7, 11: 2.0,
+}
+CATEGORY_SEASON = {
+    "Electronics": {10: 1.2, 11: 1.35},
+    "Fitness": {0: 1.25, 1: 1.15},
+    "Outdoors": {4: 1.2, 5: 1.3, 6: 1.15},
+    "Furniture": {11: 1.15},
+    "Kitchen": {11: 1.1},
+}
+CAPITALIZED_CATEGORIES = {
+    "electronics": "Electronics",
+    "office supplies": "Office Supplies",
+    "furniture": "Furniture",
+    "kitchen": "Kitchen",
+    "fitness": "Fitness",
+    "outdoors": "Outdoors",
+    "books": "Books",
+    "pet supplies": "Pet Supplies",
+}
+
+def _normalize(value: str) -> str:
+    return " ".join(str(value).split())
+
+def _clean_name(value: str) -> str:
+    return _normalize(value).title()
+
+def _clean_category(value) -> str:
+    if value is None or not str(value).strip():
+        return "Uncategorized"
+    key = _normalize(value).lower()
+    return CAPITALIZED_CATEGORIES.get(key, _normalize(value).title())
+
+def _month_start(months_before: int) -> date:
+    total = TODAY.year * 12 + (TODAY.month - 1) - months_before
+    year, month = divmod(total, 12)
+    return date(year, month + 1, 1)
+
+def _demand_series(popularity: float, category: str) -> list[int]:
+    series = []
+    for m in range(N_MONTHS):
+        season = GLOBAL_SEASON[m] * CATEGORY_SEASON.get(category, {}).get(m, 1.0)
+        trend = 1.0 + TREND_SLOPE * (m / (N_MONTHS - 1))
+        level = popularity * season * trend
+        series.append(max(1, round(level + random.uniform(-NOISE_AMP, NOISE_AMP))))
+    return series
+
+def _split_demand(total: int) -> list[int]:
+    n = random.randint(1, min(8, total))
+    base, remainder = divmod(total, n)
+    parts = [base] * n
+    for i in range(remainder):
+        parts[i] += 1
+    random.shuffle(parts)
+    return parts
 
 def build_products() -> list[RawProduct]:
     products = [
@@ -101,33 +160,54 @@ def build_products() -> list[RawProduct]:
     return products
 
 
-def build_sales(products: list[RawProduct], n: int = N_SALES) -> list[RawSale]:
-    sales = []
-    for _ in range(n):
+def build_sales(products: list[RawProduct]) -> list[RawSale]:
+    # sales have learnable patterns (popularity, seasonality, growth, persistence)
+    name_counts: dict[str, int] = {}
+    for p in products:
+        key = _clean_name(p.name)
+        name_counts[key] = name_counts.get(key, 0) + 1
+
+    popularity: dict[str, float] = {}
+    for name, count in name_counts.items():
+        popularity[name] = random.lognormvariate(0, POPULARITY_SIGMA) * BASE_LEVEL / count
+
+    sales: list[RawSale] = []
+    for p in products:
+        name = _clean_name(p.name)
+        category = _clean_category(p.category)
+        series = _demand_series(popularity[name], category)
+        for months_before, total in zip(range(N_MONTHS - 1, -1, -1), series):
+            if total <= 0:
+                continue
+            month = _month_start(months_before)
+            n_days = calendar.monthrange(month.year, month.month)[1]
+            price = p.price if p.price is not None else 0.0
+            for qty in _split_demand(total):
+                sales.append(
+                    RawSale(
+                        product_id=p.id,
+                        quantity=qty,
+                        revenue=round(qty * price, 2),
+                        sale_date=month + timedelta(days=random.randint(0, n_days - 1)),
+                    )
+                )
+
+    # dirty rows with missing values for the pipeline to clean/drop
+    n_dirty = max(1, int(len(sales) * 0.1))
+    for _ in range(n_dirty):
         product = random.choice(products)
-        quantity = random.randint(1, 10)
-        revenue = round(quantity * product.price, 2) if product.price is not None else None
-        sale_date = TODAY - timedelta(days=random.randint(0, 364))
         sales.append(
             RawSale(
                 product_id=product.id,
-                quantity=quantity,
-                revenue=revenue,
-                sale_date=sale_date,
+                quantity=None,
+                revenue=None,
+                sale_date=TODAY - timedelta(days=random.randint(0, 364)),
             )
         )
-
-    # 60 sales with missing quantity and revenue
-    for s in random.sample(sales, 60):
-        s.quantity = None
-    for s in random.sample(sales, 60):
-        s.revenue = None
     return sales
 
-
 BUCKET_PATTERN = ["increase", "maintain", "maintain", "increase", "decrease"]
-STOCK_FACTORS = {"increase": 0.5, "maintain": 1.25, "decrease": 3.0}
-
+STOCK_FACTORS = {"increase": 0.8, "maintain": 1.1, "decrease": 1.4}
 
 def build_inventory(products: list[RawProduct], sales: list[RawSale]) -> list[RawInventory]:
     demand: dict[int, int] = {}
@@ -141,14 +221,10 @@ def build_inventory(products: list[RawProduct], sales: list[RawSale]) -> list[Ra
         bucket = BUCKET_PATTERN[i % len(BUCKET_PATTERN)]
         stock = max(1, round(avg_monthly * STOCK_FACTORS[bucket]))
         inventory.append((RawInventory(product_id=p.id, current_stock=stock), bucket))
-
-    # a couple nulls (not on decrease products, so the mix stays intact)
     candidates = [t for t in inventory if t[1] != "decrease"]
     for row, _ in random.sample(candidates, 2):
         row.current_stock = None
-
     return [row for row, _ in inventory]
-
 
 def main() -> None:
     engine = get_engine()
