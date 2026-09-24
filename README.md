@@ -16,7 +16,7 @@ Unzip the folder containing the codebase, and open the unzipped project in your 
 Open a terminal and run `npm install`.
 
 ### Step 3. Seed the mock database and run the data processing  pipeline
-Open a terminal and run `npm run db:seed` to set up the raw datasets, then run `npm run db:pipeline` to process the raw datasets though the data processing pipeline.
+Open a terminal and run `npm run db:seed` to set up the raw datasets this may take a moment since it will set up the python environment as well, then run `npm run db:pipeline` to process the raw datasets though the data processing pipeline.
 
 ### Step 4. Train the demand prediction ml model
 Open a terminal and run `npm run ml:train` to train the machine learning model and run `npm run ml:evaluate` to evaluate the model's accuracy using MAE. 
