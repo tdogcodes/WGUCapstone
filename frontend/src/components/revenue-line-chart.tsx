@@ -63,7 +63,7 @@ export default function RevenueLineChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revenue over the last 6 months</CardTitle>
+        <CardTitle>Revenue</CardTitle>
         <CardDescription>
           {chartData[0].year_month} - {chartData[chartData.length - 1].year_month}
         </CardDescription>
