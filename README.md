@@ -21,5 +21,5 @@ Open a terminal and run `npm run ml:evaluate` to evaluate the model's TimeSeries
 ### Step 4. Run the project
 Open a terminal and run `npm run dev` Using turborepo I have it set up so that this one command starts up the frontend and backend together.
 
-### Step 5i have . Test the application in the browser
+### Step 5. Test the application in the browser
  You can now open the project in the browser at http://localhost:5173/ this may vary if something is already running on that port, so it is also provided as a link in the terminal when you run the project, all you need to do is ctrl click the link.
